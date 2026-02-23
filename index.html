@@ -593,7 +593,7 @@
         </p>
       </div>
 
-      <div class="about-section">
+	<div class="about-section">
         <div class="about-label">circlestone labs contact</div>
         <p class="about-text">for licensing questions or inquiries about the model:</p>
         <a class="contact-pill" style="display:flex;margin-bottom:8px;">
@@ -649,8 +649,11 @@
 </div>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-// Map from normalized name -> 1-based line number
-let ARTISTS = new Map();
+// Each entry: { full, preBracket, inBracket|null, lineNum }
+let ARTIST_ENTRIES = [];
+// Lookup map: normalized token -> lineNum (first match wins)
+// Keys are added for: full entry, preBracket (only if it has a bracket part), inBracket
+let LOOKUP = new Map();
 let TOTAL_LINES = 0;
 
 fetch('artists.txt')
@@ -660,13 +663,33 @@ fetch('artists.txt')
     TOTAL_LINES = lines.filter(l => l.trim().length > 0).length;
     let lineNum = 0;
     lines.forEach(l => {
-      const normalized = l.trim().replace(/^@+/, '').replace(/\\\(/g, '(').replace(/\\\)/g, ')').replace(/\\\\/g, '').toLowerCase();
-      if (normalized) {
-        lineNum++;
-        if (!ARTISTS.has(normalized)) {
-          ARTISTS.set(normalized, lineNum);
-        }
-      }
+      // Unescape \( \) \\ as the original code did
+      const normalized = l.trim()
+        .replace(/^@+/, '')
+        .replace(/\\\(/g, '(')
+        .replace(/\\\)/g, ')')
+        .replace(/\\\\/g, '')
+        .toLowerCase();
+      if (!normalized) return;
+      lineNum++;
+
+      // Parse into preBracket and inBracket
+      const bracketMatch = normalized.match(/^(.+?)\s*\((.+)\)\s*$/);
+      const full = normalized;
+      const preBracket = bracketMatch ? bracketMatch[1].trim() : null;
+      const inBracket  = bracketMatch ? bracketMatch[2].trim() : null;
+
+      const entry = { full, preBracket, inBracket, lineNum };
+      ARTIST_ENTRIES.push(entry);
+
+      // Index: full entry always
+      if (!LOOKUP.has(full)) LOOKUP.set(full, lineNum);
+
+      // Index: preBracket only when a bracket part exists (so "mk" maps via "mk (mod0)")
+      if (preBracket && !LOOKUP.has(preBracket)) LOOKUP.set(preBracket, lineNum);
+
+      // Index: inBracket (e.g. "mod0")
+      if (inBracket && !LOOKUP.has(inBracket)) LOOKUP.set(inBracket, lineNum);
     });
   })
   .catch(() => console.error('Could not load artists.txt'));
@@ -686,7 +709,7 @@ function checkArtist() {
     return;
   }
 
-  const lineNumber = ARTISTS.get(query);
+  const lineNumber = LOOKUP.get(query);
   const found = lineNumber !== undefined;
 
   // Reset animation
