@@ -648,7 +648,7 @@
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // Each entry: { full, preBracket, inBracket|null, lineNum }
 let ARTIST_ENTRIES = [];
 // Lookup map: normalized token -> lineNum (first match wins)
@@ -732,7 +732,7 @@ function checkArtist() {
       replMsg = 'Your art style may or may not be accurately replicated by the model. It may have some distinct differences, but this doesn\'t mean your art wasn\'t used as training data.';
     }
 
-    replEl.innerHTML = replMsg + '<br><span style="opacity:0.7;margin-top:4px;display:inline-block;">Index position: #' + lineNumber.toLocaleString() + ' of ' + TOTAL_LINES.toLocaleString() + '</span>'<br> this is your rank among other artists in the dataset. the higher the number, the less samples of your art are present.</br>;;
+    replEl.innerHTML = replMsg + '<br><span style="opacity:0.7;margin-top:4px;display:inline-block;">Index position: #' + lineNumber.toLocaleString() + ' of ' + TOTAL_LINES.toLocaleString() + ' — this is your rank among other artists in the dataset. the higher the number, the less samples of your art are present.</span>';
     replEl.style.display = 'block';
   } else {
     resultEl.className = 'result not-found';
