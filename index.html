@@ -268,6 +268,16 @@
     color: var(--red);
   }
 
+  .result-replication {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--mid);
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--pink);
+    opacity: 0.85;
+  }
+
   /* Divider */
   .divider {
     display: flex;
@@ -559,6 +569,7 @@
       <div class="result-icon" id="result-icon"></div>
       <div class="result-title" id="result-title"></div>
       <div class="result-msg" id="result-msg"></div>
+      <div class="result-replication" id="result-replication"></div>
     </div>
 
     <div class="divider">index</div>
@@ -585,8 +596,8 @@
       <div class="about-section">
         <div class="about-label">circlestone labs contact</div>
         <p class="about-text">for licensing questions or inquiries about the model:</p>
-        <a class="contact-pill" href="/cdn-cgi/l/email-protection#bdc9d9cfc8ceced8d1d18cfdcdcfd2c9d2d393d0d8">
-          ✉️ <span class="__cf_email__" data-cfemail="fe8a9a8c8b8d8d9b9292cfbe8e8c918a9190d0939b">[email&#160;protected]</span>
+        <a class="contact-pill" style="display:flex;margin-bottom:8px;">
+			✉️ email: tdrussell1@proton.me
         </a>
       </div>
 
@@ -638,16 +649,25 @@
 </div>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-let ARTISTS = new Set();
+// Map from normalized name -> 1-based line number
+let ARTISTS = new Map();
+let TOTAL_LINES = 0;
 
 fetch('artists.txt')
   .then(r => r.text())
   .then(text => {
-    ARTISTS = new Set(
-      text.split('\n')
-        .map(l => l.trim().replace(/^@+/, '').replace(/\\\(/g, '(').replace(/\\\)/g, ')').replace(/\\\\/g, '').toLowerCase())
-        .filter(Boolean)
-    );
+    const lines = text.split('\n');
+    TOTAL_LINES = lines.filter(l => l.trim().length > 0).length;
+    let lineNum = 0;
+    lines.forEach(l => {
+      const normalized = l.trim().replace(/^@+/, '').replace(/\\\(/g, '(').replace(/\\\)/g, ')').replace(/\\\\/g, '').toLowerCase();
+      if (normalized) {
+        lineNum++;
+        if (!ARTISTS.has(normalized)) {
+          ARTISTS.set(normalized, lineNum);
+        }
+      }
+    });
   })
   .catch(() => console.error('Could not load artists.txt'));
 
@@ -659,13 +679,15 @@ function checkArtist() {
   const iconEl = document.getElementById('result-icon');
   const titleEl = document.getElementById('result-title');
   const msgEl = document.getElementById('result-msg');
+  const replEl = document.getElementById('result-replication');
 
   if (!query) {
     resultEl.style.display = 'none';
     return;
   }
 
-  const found = ARTISTS.has(query);
+  const lineNumber = ARTISTS.get(query);
+  const found = lineNumber !== undefined;
 
   // Reset animation
   resultEl.style.display = 'none';
@@ -676,10 +698,25 @@ function checkArtist() {
     resultEl.className = 'result found';
     titleEl.textContent = 'Found in the index';
     msgEl.innerHTML = 'Your art has been trained on by the <strong>Anima2B Preview</strong> model. <a href="#" onclick="showPage(\'about\');return false;" style="color:var(--red);font-weight:700;border-bottom:1.5px dashed var(--pink);text-decoration:none;"><br>here\'s what you should know</br></a>';
+
+    // Replication likelihood message
+    let replMsg = '';
+    if (lineNumber < 40000) {
+      replMsg = 'Your art style is likely able to be replicated very accurately by the model.';
+    } else if (lineNumber > 50000) {
+      replMsg = 'There is a chance that your art isn\'t able to be replicated well by the model. However, this doesn\'t mean your art wasn\'t used as training data.';
+    } else {
+      replMsg = 'Your art style may or may not be accurately replicated by the model. It may have some distinct differences, but this doesn\'t mean your art wasn\'t used as training data.';
+    }
+
+    replEl.innerHTML = replMsg + '<br><span style="opacity:0.7;margin-top:4px;display:inline-block;">Index position: #' + lineNumber.toLocaleString() + ' of ' + TOTAL_LINES.toLocaleString() + '</span>';
+    replEl.style.display = 'block';
   } else {
     resultEl.className = 'result not-found';
     titleEl.textContent = 'Not found';
     msgEl.innerHTML = 'Your art has likely <strong>not</strong> been trained on.';
+    replEl.style.display = 'none';
+    replEl.innerHTML = '';
   }
 }
 
@@ -693,7 +730,6 @@ function showPage(name) {
   document.getElementById('nav-lookup').classList.toggle('active', name === 'lookup');
   document.getElementById('nav-about').classList.toggle('active', name === 'about');
 }
-
 </script>
 </body>
 </html>
